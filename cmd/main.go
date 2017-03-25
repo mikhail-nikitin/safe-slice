@@ -10,6 +10,17 @@ func main() {
 	store := safeslice.New()
 	fmt.Printf("Initially has %d items\n", store.Len())
 
+	store.Append(1)
+	store.Delete(0)
+	fmt.Printf("After deleting got %d items\n", store.Len())
+	for i := 0; i < 50; i++ {
+		store.Append(-i)
+	}
+	for store.Len() > 0 {
+		store.Delete(store.Len() - 1)
+	}
+	fmt.Printf("After deleting got %d items\n", store.Len())
+
 	deleted := []int{0, 2, 3, 5, 7, 20, 399, 25, 30, 1000, 91, 97, 98, 99}
 
 	var waiter sync.WaitGroup
