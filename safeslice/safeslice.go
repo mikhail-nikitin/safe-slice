@@ -23,16 +23,11 @@ const (
 )
 
 type command struct {
-	action int
-	value interface{}
-	index int
-	result chan interface{}
+	action  int
+	value   interface{}
+	index   int
+	result  chan interface{}
 	updater UpdateFunc
-}
-
-type searchResult struct {
-	value interface{}
-	found bool
 }
 
 func (s safeSlice) Append(value interface{}) {
@@ -42,22 +37,17 @@ func (s safeSlice) Append(value interface{}) {
 func (s safeSlice) At(index int) interface{} {
 	resultChannel := make(chan interface{})
 	s <- command{action: getElementAt, index: index, result: resultChannel}
-	sr := (<-resultChannel).(searchResult)
-	if sr.found {
-		return sr.value
-	} else {
-		return nil
-	}
+	return <-resultChannel
 }
 
 func (s safeSlice) Close() []interface{} {
 	resultChannel := make(chan interface{})
-	s <- command{action: end, result: resultChannel }
-	return (<- resultChannel).([]interface{})
+	s <- command{action: end, result: resultChannel}
+	return (<-resultChannel).([]interface{})
 }
 
 func (s safeSlice) Delete(index int) {
-	s <- command{action: deleteElementAt, index: index }
+	s <- command{action: deleteElementAt, index: index}
 }
 
 func (s safeSlice) Len() int {
@@ -80,20 +70,21 @@ func (s safeSlice) run() {
 	go func() {
 		data := make([]interface{}, 0)
 		for {
-			cmd := <- s
-			switch (cmd.action) {
+			cmd := <-s
+			switch cmd.action {
 			case appendElement:
 				data = append(data, cmd.value)
 			case getElementAt:
-				r := searchResult{}
+				var result interface{} = nil
 				if len(data) > cmd.index && cmd.index >= 0 {
-					r.value = data[cmd.index]
-					r.found = true
+					result = data[cmd.index]
 				}
-				cmd.result <- r
+				cmd.result <- result
 			case deleteElementAt:
 				if len(data) > cmd.index && cmd.index >= 0 {
-					data = append(data[:cmd.index], data[cmd.index + 1:]...)
+					head := data[:cmd.index]
+					tail := data[cmd.index+1:]
+					data = append(head, tail...)
 				}
 			case getLength:
 				cmd.result <- len(data)
